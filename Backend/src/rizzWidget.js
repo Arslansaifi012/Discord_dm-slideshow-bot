@@ -388,10 +388,55 @@ drawBubblyIcon('plus', x + w - 60, iconCenterY);
   drawBubble(plugData?.messages?.[2]?.text, chatAreaY + chatPaddingTop + h1 + bubbleGap + h2 + bubbleGap, false, h3);
 
   // 5. AI GENERATED LABEL
+//   ctx.fillStyle = '#000000';
+//   ctx.font = '800 40px Arial';
+//   ctx.textAlign = 'center';
+//   ctx.fillText('👇 AI generated RIZZ 👇', 1080/2, suggBoxY - 50);
+  
+// Helper to draw native color emojis
+  const drawRealEmoji = (emoji, x, y, isFlipped) => {
+    ctx.save();
+    ctx.translate(x, y);
+    if (isFlipped) ctx.scale(-1, 1); // Mirror the emoji for the right side
+    
+    // Use a font stack that prioritizes color emoji rendering
+    ctx.font = '50px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Arial"';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    
+    // Clear any shadow/stroke settings that might interfere with emoji colors
+    ctx.shadowColor = 'transparent';
+    ctx.strokeStyle = 'transparent';
+    
+    ctx.fillText(emoji, 0, 0); 
+    ctx.restore();
+  };
+
+  // 1. Setup Label Text
+  const labelText = "AI generated RIZZ";
+  const labelY = suggBoxY - 55; // Positioned above the white suggestion box
+  
+  ctx.save();
+  ctx.font = 'bold 45px Arial';
   ctx.fillStyle = '#000000';
-  ctx.font = '800 40px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText('👇 AI generated RIZZ 👇', 1080/2, suggBoxY - 50);
+  ctx.textBaseline = 'middle';
+  
+  // 2. Measure for perfect icon spacing
+  const textWidth = ctx.measureText(labelText).width;
+  const centerxx = 1080 / 2;
+  const iconSpacing = (textWidth / 2) + 65; // Distance from center to emoji
+
+  // 3. Draw the Text
+  ctx.fillText(labelText, centerxx, labelY);
+  
+  // 4. Draw the Real Colorful Emojis
+  // Left Hand
+  drawRealEmoji('👇', centerxx - iconSpacing, labelY, false);
+  // Right Hand
+  drawRealEmoji('👇', centerxx + iconSpacing, labelY, true);
+  
+  ctx.restore();
 
   // 6. WHITE SUGGESTION BOX
   ctx.fillStyle = '#FFFFFF';
