@@ -1,0 +1,34 @@
+
+# Dependencies
+node_modules/
+/dist/
+/build/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Log files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# Editor/OS Files
+.DS_Store # macOS
+.vscode/ # VSCode settings (optional)
+.idea/ # JetBrains IDE settings (optional)
+
+# Testing/Coverage
+/coverage
+
+
+node_modules/
+dist/
+build/
+.env
+*.mp4
+*.mov
+*.zip
+*.exe
