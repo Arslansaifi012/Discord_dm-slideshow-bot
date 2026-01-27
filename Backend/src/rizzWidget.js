@@ -213,13 +213,7 @@ async function renderPlugAIChatWidget(ctx, y, plugData, theme) {
   const w = 1040; 
   const x = (1080 - w) / 2;
   
-  const chatPaddingTop = 30; 
-  const bubbleGap = 18;  
-  const chatAreaMarginX = 60;
-  const chatAreaX = x + chatAreaMarginX; 
-  const chatAreaY = y + 160; 
-  const chatAreaW = w - (chatAreaMarginX * 2);
-
+  // -- MEASUREMENT LOGIC --
   const measureBubble = (text) => {
     const maxWidth = 550; 
     ctx.font = '600 40px Arial';
@@ -243,23 +237,22 @@ async function renderPlugAIChatWidget(ctx, y, plugData, theme) {
   const h2 = measureBubble(plugData?.messages?.[1]?.text || "");
   const h3 = measureBubble(plugData?.messages?.[2]?.text || "");
   
-  const chatAreaH = chatPaddingTop + h1 + bubbleGap + h2 + bubbleGap + h3 + 30;
+  const chatPaddingTop = 40;
+  const bubbleGap = 20;
+  const chatAreaH = chatPaddingTop + h1 + bubbleGap + h2 + bubbleGap + h3 + 40;
+  const chatAreaX = x + 60;
+  const chatAreaY = y + 200;
+  const chatAreaW = w - 120;
 
-  const blueBoxMarginX = 20;
-  const notchWidth = 15;
-  const blueBoxW = w - (blueBoxMarginX * 2) - notchWidth;
-  const blueBoxX = x + blueBoxMarginX;
-  const blueLineHeight = 60; 
-  ctx.font = '700 52px Arial';
-  
+  // -- SUGGESTION BOX LOGIC --
+  ctx.font = '700 48px Arial';
   const suggestion = plugData?.blueReply || '';
   const suggWords = suggestion.split(' ');
   let suggLines = [];
   let currentSuggLine = '';
-
   for (let i = 0; i < suggWords.length; i++) {
     const testLine = currentSuggLine + suggWords[i] + ' ';
-    if (ctx.measureText(testLine).width > blueBoxW - 80) {
+    if (ctx.measureText(testLine).width > chatAreaW - 150) {
       suggLines.push(currentSuggLine.trim());
       currentSuggLine = suggWords[i] + ' ';
     } else {
@@ -267,146 +260,157 @@ async function renderPlugAIChatWidget(ctx, y, plugData, theme) {
     }
   }
   if (currentSuggLine) suggLines.push(currentSuggLine.trim());
-  
-  const bluePaddingY = 50;
-  const blueBoxH = (suggLines.length * blueLineHeight) + (bluePaddingY * 1.5);
 
-  const tapToCopySpace = 75; 
-  const blueBoxY = chatAreaY + chatAreaH + tapToCopySpace + 60; 
-  const containerPaddingBottom = 70;
-  const totalHeight = (blueBoxY + blueBoxH + containerPaddingBottom) - y;
+  const suggPadding = 60;
+  const suggLineHeight = 60;
+  const suggBoxH = (suggLines.length * suggLineHeight) + (suggPadding * 2);
+  const suggBoxY = chatAreaY + chatAreaH + 120;
+
+  const totalHeight = (suggBoxY + suggBoxH + 100) - y;
 
   ctx.save();
   
-  ctx.fillStyle = '#B6D2FC'; 
+  // 1. BACKGROUND GRADIENT
+  const gradient = ctx.createLinearGradient(0, y, 0, y + totalHeight);
+  gradient.addColorStop(0, '#CFE1E8'); // Light Purple
+  gradient.addColorStop(1, '#E7DAE5'); // Light Blue
+  ctx.fillStyle = gradient;
   ctx.fillRect(0, y, 1080, totalHeight);
 
-  const headerY = y + 80;
-  ctx.font = '900 100px Arial';
-  ctx.fillStyle = '#F84C5C';
-  ctx.textAlign = 'left';
-  ctx.fillText('‹', x + 10, headerY + 5);
-  ctx.textAlign = 'right';
-  ctx.fillText('+', x + w - 10, headerY + 5);
-  
+// 2. HEADER: "RIZZ APP" (Updated for exact match)
+  const headerY = y + 100;
+  const centerX = 1080 / 2;
+
+  // --- Draw Shadow for the Title ---
+  ctx.save();
   ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.font = 'italic 1000 110px Arial';
-  ctx.strokeStyle = '#FFFFFF';
-  ctx.lineWidth = 16;
+  ctx.font = 'italic 900 100px Arial'; // Slightly larger to match visual weight
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+  ctx.shadowBlur = 15;
+  ctx.shadowOffsetY = 8;
+  
+  // --- Create Text Gradient (Pink to Purple) ---
+  const textGradient = ctx.createLinearGradient(centerX - 200, 0, centerX + 200, 0);
+  textGradient.addColorStop(0, '#F5C6D6'); // Light Pink
+  textGradient.addColorStop(1, '#B9B6F5'); // Light Purple
+  
+  // --- Draw Stroke (The thick black border) ---
+  ctx.lineJoin = 'round';
+  ctx.miterLimit = 2;
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = 20; // Thick outer border
+  ctx.strokeText('RIZZ APP', centerX, headerY);
+  
+  // --- Draw Fill ---
+  ctx.fillStyle = textGradient;
+  ctx.fillText('RIZZ APP', centerX, headerY);
+  ctx.restore();
+
+  // --- Draw the Icons (Back Arrow and Plus) ---
+// Function to draw the rounded bubbly icons
+const drawBubblyIcon = (type, iconX, iconY) => {
+  ctx.save();
+  ctx.translate(iconX, iconY);
+  
+  // 1. Setup Shadow
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+  ctx.shadowBlur = 8;
+  ctx.shadowOffsetY = 4;
+
+  // 2. Define the Path based on type
+  ctx.beginPath();
+  ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   
-  ctx.strokeText('PlugAI', x + w / 2, headerY);
-  ctx.fillText('PlugAI', x + w / 2, headerY);
+  const size = 35; // Controls the overall scale/height
+  const thickness = 14; // Controls how "thick/rounded" the lines are
 
-  ctx.fillStyle = '#000000';
-  ctx.beginPath();
-  if (ctx.roundRect) {
-    ctx.roundRect(chatAreaX, chatAreaY, chatAreaW, chatAreaH, 55);
-  } else {
-    const radius = 55;
-    ctx.moveTo(chatAreaX + radius, chatAreaY);
-    ctx.lineTo(chatAreaX + chatAreaW - radius, chatAreaY);
-    ctx.quadraticCurveTo(chatAreaX + chatAreaW, chatAreaY, chatAreaX + chatAreaW, chatAreaY + radius);
-    ctx.lineTo(chatAreaX + chatAreaW, chatAreaY + chatAreaH - radius);
-    ctx.quadraticCurveTo(chatAreaX + chatAreaW, chatAreaY + chatAreaH, chatAreaX + chatAreaW - radius, chatAreaY + chatAreaH);
-    ctx.lineTo(chatAreaX + radius, chatAreaY + chatAreaH);
-    ctx.quadraticCurveTo(chatAreaX, chatAreaY + chatAreaH, chatAreaX, chatAreaY + chatAreaH - radius);
-    ctx.lineTo(chatAreaX, chatAreaY + radius);
-    ctx.quadraticCurveTo(chatAreaX, chatAreaY, chatAreaX + radius, chatAreaY);
-    ctx.closePath();
+  if (type === 'arrow') {
+    // Drawing a custom rounded Chevron
+    ctx.moveTo(size / 2, -size);
+    ctx.lineTo(-size / 2, 0);
+    ctx.lineTo(size / 2, size);
+  } else if (type === 'plus') {
+    // Drawing a custom rounded Plus
+    ctx.moveTo(0, -size);
+    ctx.lineTo(0, size);
+    ctx.moveTo(-size, 0);
+    ctx.lineTo(size, 0);
   }
+
+  // 3. Draw the thick black border
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = thickness + 12; // Extra width for the outer stroke
+  ctx.stroke();
+
+  // 4. Create the Gradient Fill
+  const iconGrad = ctx.createLinearGradient(-size, -size, size, size);
+  iconGrad.addColorStop(0, '#E0D7FF'); // Light Purple
+  iconGrad.addColorStop(1, '#F5C6D6'); // Light Pink
+  
+  ctx.strokeStyle = iconGrad;
+  ctx.lineWidth = thickness;
+  ctx.stroke();
+
+  ctx.restore();
+};
+
+// --- Execute Drawing ---
+// Adjust Y position to align vertically with the "RIZZ APP" text
+const iconCenterY = headerY - 30; 
+drawBubblyIcon('arrow', x + 60, iconCenterY);
+drawBubblyIcon('plus', x + w - 60, iconCenterY);
+
+  // 3. DARK CHAT CONTAINER
+  ctx.fillStyle = '#1A1A1A';
+  ctx.beginPath();
+  ctx.roundRect(chatAreaX, chatAreaY, chatAreaW, chatAreaH, 60);
   ctx.fill();
 
-  const drawBubble = (text, startY, isRight, bH) => {
-    const maxWidth = 550;
-    ctx.font = '600 40px Arial';
-    const words = text.split(' ');
-    let lines = [];
-    let currentLine = '';
-    for (let n = 0; n < words.length; n++) {
-      let testLine = currentLine + words[n] + ' ';
-      if (ctx.measureText(testLine).width > maxWidth && n > 0) {
-        lines.push(currentLine);
-        currentLine = words[n] + ' ';
-      } else {
-        currentLine = testLine;
-      }
-    }
-    lines.push(currentLine);
-
-    const widestLine = Math.max(...lines.map(l => ctx.measureText(l).width));
-    const bW = widestLine + 70;
-    const bX = isRight ? (chatAreaX + chatAreaW - bW - 25) : (chatAreaX + 25);
-
-    ctx.fillStyle = isRight ? theme.right_bubble : theme.left_bubble;
+  // 4. DRAW BUBBLES
+  const drawBubble = (text, bY, isRight, bH) => {
+    ctx.font = '600 36px Arial';
+    const bW = ctx.measureText(text).width + 60;
+    const bX = isRight ? (chatAreaX + chatAreaW - bW - 40) : (chatAreaX + 40);
+    
+    ctx.fillStyle = isRight ? '#007AFF' : '#333333';
     ctx.beginPath();
-    if (ctx.roundRect) {
-      ctx.roundRect(bX, startY, bW, bH, 40);
-    } else {
-      const radius = 40;
-      ctx.moveTo(bX + radius, startY);
-      ctx.lineTo(bX + bW - radius, startY);
-      ctx.quadraticCurveTo(bX + bW, startY, bX + bW, startY + radius);
-      ctx.lineTo(bX + bW, startY + bH - radius);
-      ctx.quadraticCurveTo(bX + bW, startY + bH, bX + bW - radius, startY + bH);
-      ctx.lineTo(bX + radius, startY + bH);
-      ctx.quadraticCurveTo(bX, startY + bH, bX, startY + bH - radius);
-      ctx.lineTo(bX, startY + radius);
-      ctx.quadraticCurveTo(bX, startY, bX + radius, startY);
-      ctx.closePath();
-    }
+    ctx.roundRect(bX, bY, bW, bH, 35);
     ctx.fill();
 
     ctx.fillStyle = '#FFFFFF';
     ctx.textAlign = 'left';
-    lines.forEach((line, i) => {
-      ctx.fillText(line.trim(), bX + 35, startY + 45 + (i * 48));
-    });
+    ctx.fillText(text, bX + 30, bY + (bH/2) + 12);
   };
 
   drawBubble(plugData?.messages?.[0]?.text, chatAreaY + chatPaddingTop, false, h1);
   drawBubble(plugData?.messages?.[1]?.text, chatAreaY + chatPaddingTop + h1 + bubbleGap, true, h2);
   drawBubble(plugData?.messages?.[2]?.text, chatAreaY + chatPaddingTop + h1 + bubbleGap + h2 + bubbleGap, false, h3);
 
-  ctx.fillStyle = '#7C93AC';
-  ctx.font = '600 38px Arial';
+  // 5. AI GENERATED LABEL
+  ctx.fillStyle = '#000000';
+  ctx.font = '800 40px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText('tap to copy', x + w / 2, chatAreaY + chatAreaH + tapToCopySpace);
+  ctx.fillText('👇 AI generated RIZZ 👇', 1080/2, suggBoxY - 50);
 
-  ctx.fillStyle = '#007AFF';
-  const radius = 55;
-  const bBX = blueBoxX;
-  const bBY = blueBoxY;
-  const bBW = blueBoxW;
-  const bBH = blueBoxH;
-
+  // 6. WHITE SUGGESTION BOX
+  ctx.fillStyle = '#FFFFFF';
   ctx.beginPath();
-  ctx.moveTo(bBX + radius, bBY);
-  ctx.lineTo(bBX + bBW - radius, bBY);
-  ctx.quadraticCurveTo(bBX + bBW, bBY, bBX + bBW, bBY + radius);
-  ctx.lineTo(bBX + bBW, bBY + bBH - 20);
-  ctx.lineTo(bBX + bBW + 12, bBY + bBH);
-  ctx.lineTo(bBX + bBW - 20, bBY + bBH - 5);
-  ctx.quadraticCurveTo(bBX + bBW - radius, bBY + bBH, bBX + bBW - radius, bBY + bBH);
-  ctx.lineTo(bBX + radius, bBY + bBH);
-  ctx.quadraticCurveTo(bBX, bBY + bBH, bBX, bBY + bBH - radius);
-  ctx.lineTo(bBX, bBY + radius);
-  ctx.quadraticCurveTo(bBX, bBY, bBX + radius, bBY);
+  ctx.roundRect(chatAreaX, suggBoxY, chatAreaW, suggBoxH, 50);
   ctx.fill();
 
-  ctx.fillStyle = '#FFFFFF';
+  // Suggestion Text
+  ctx.fillStyle = '#000000';
   ctx.textAlign = 'left';
-  ctx.font = '700 52px Arial';
-  
-  const textHeight = suggLines.length * blueLineHeight;
-  let textY = blueBoxY + (blueBoxH - textHeight) / 2 + blueLineHeight * 0.8;  
-
-  suggLines.forEach(l => {
-    ctx.fillText(l, blueBoxX + 45, textY);
-    textY += blueLineHeight;
+  suggLines.forEach((line, i) => {
+    ctx.fillText(line, chatAreaX + 50, suggBoxY + suggPadding + 40 + (i * suggLineHeight));
   });
-  
+
+  // Simple Copy Icon placeholder
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = 4;
+  ctx.strokeRect(chatAreaX + chatAreaW - 90, suggBoxY + (suggBoxH/2) - 20, 30, 35);
+
   ctx.restore();
   return totalHeight;
 }

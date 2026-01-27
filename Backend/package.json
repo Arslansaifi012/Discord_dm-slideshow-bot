@@ -7,7 +7,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node ./src/bot.js",
-    "dev": "nodemon ./src/newdjs.js"
+    "dev": "nodemon ./src/rizzWidget.js"
   },
   "keywords": [],
   "author": "",
