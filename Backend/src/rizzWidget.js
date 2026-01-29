@@ -145,7 +145,6 @@ async function renderIOSBubble(ctx, msg, y, theme, measureOnly = false) {
     const bigEmoji = isEmojiOnly(text);
     const fontSize = bigEmoji ? 115 : 44;
     const padX = 36, padY = 26, maxWidth = 780, lineHeight = fontSize * 1.2;
-
     ctx.font = `${fontSize}px "SF Pro", Arial`;
     let lines = [];
     const words = text.split(" ");
@@ -209,17 +208,43 @@ async function renderIOSBubble(ctx, msg, y, theme, measureOnly = false) {
 }
 
 // ========== PLUGAI WIDGET RENDERER (CENTERED) ==========
+// ========== PLUGAI WIDGET RENDERER (CENTERED) ==========
 async function renderPlugAIChatWidget(ctx, y, plugData, theme) {
+  // --- 1. EMOJI LOADER & DRAWER ---
+  const drawRealEmoji = async (x, y, isFlipped) => {
+    try {
+      const img = await loadEmoji("👇");
+      if (!img) return;
+
+      ctx.save();
+      ctx.translate(x, y);
+      if (isFlipped) ctx.scale(-1, 1);
+      ctx.drawImage(img, -28, -28, 56, 56);
+      ctx.restore();
+    } catch (e) {
+      ctx.save();
+      ctx.font = '55px "Apple Color Emoji", "Segoe UI Emoji", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.translate(x, y);
+      if (isFlipped) ctx.scale(-1, 1);
+      ctx.fillText('👇', 0, 0);
+      ctx.restore();
+    }
+  };
+
   const w = 1040; 
   const x = (1080 - w) / 2;
-  
-  // -- MEASUREMENT LOGIC --
+
+  // --- 2. DYNAMIC BUBBLE MEASUREMENT ---
   const measureBubble = (text) => {
+    if (!text) return 0;
     const maxWidth = 550; 
     ctx.font = '600 40px Arial';
     const words = text.split(' ');
     let lines = [];
     let currentLine = '';
+    
     for (let n = 0; n < words.length; n++) {
       let testLine = currentLine + words[n] + ' ';
       if (ctx.measureText(testLine).width > maxWidth && n > 0) {
@@ -230,236 +255,185 @@ async function renderPlugAIChatWidget(ctx, y, plugData, theme) {
       }
     }
     lines.push(currentLine);
+    // Dynamic height based on number of lines (48px per line + 40px padding)
     return (lines.length * 48) + 40;
   };
 
-  const h1 = measureBubble(plugData?.messages?.[0]?.text || "");
-  const h2 = measureBubble(plugData?.messages?.[1]?.text || "");
-  const h3 = measureBubble(plugData?.messages?.[2]?.text || "");
+  const h1 = measureBubble(plugData?.messages?.[0]?.text);
+  const h2 = measureBubble(plugData?.messages?.[1]?.text);
+  const h3 = measureBubble(plugData?.messages?.[2]?.text);
   
   const chatPaddingTop = 40;
   const bubbleGap = 20;
-  const chatAreaH = chatPaddingTop + h1 + bubbleGap + h2 + bubbleGap + h3 + 40;
+  // Dynamic Chat Area Height calculation
+  const chatAreaH = chatPaddingTop + h1 + (h1?bubbleGap:0) + h2 + (h2?bubbleGap:0) + h3 + 40;
   const chatAreaX = x + 60;
   const chatAreaY = y + 200;
   const chatAreaW = w - 120;
 
-  // -- SUGGESTION BOX LOGIC --
-  ctx.font = '700 48px Arial';
+  // --- 3. DYNAMIC SUGGESTION BOX WRAPPING ---
+  ctx.font = '600 44px Arial';
   const suggestion = plugData?.blueReply || '';
-  const suggWords = suggestion.split(' ');
+  const leftPadding = 60;
+  const copyIconSpace = 130; 
+  const textMaxWidth = chatAreaW - leftPadding - copyIconSpace;
+  
   let suggLines = [];
+  const words = suggestion.split(' ');
   let currentSuggLine = '';
-  for (let i = 0; i < suggWords.length; i++) {
-    const testLine = currentSuggLine + suggWords[i] + ' ';
-    if (ctx.measureText(testLine).width > chatAreaW - 150) {
-      suggLines.push(currentSuggLine.trim());
-      currentSuggLine = suggWords[i] + ' ';
-    } else {
+  
+  for (let i = 0; i < words.length; i++) {
+    const testLine = currentSuggLine ? currentSuggLine + ' ' + words[i] : words[i];
+    if (ctx.measureText(testLine).width <= textMaxWidth) {
       currentSuggLine = testLine;
+    } else {
+      if (currentSuggLine) suggLines.push(currentSuggLine);
+      currentSuggLine = words[i];
     }
   }
-  if (currentSuggLine) suggLines.push(currentSuggLine.trim());
+  if (currentSuggLine) suggLines.push(currentSuggLine);
 
-  const suggPadding = 60;
-  const suggLineHeight = 60;
-  const suggBoxH = (suggLines.length * suggLineHeight) + (suggPadding * 2);
-  const suggBoxY = chatAreaY + chatAreaH + 120;
+  const verticalPadding = 60; 
+  const lineSpacing = 60;    
+  // Suggestion box height becomes fully dynamic based on text wrap
+  const suggBoxH = Math.max(140, (suggLines.length * lineSpacing) + (verticalPadding * 2));
+  const suggBoxY = chatAreaY + chatAreaH + 100;
 
-  const totalHeight = (suggBoxY + suggBoxH + 100) - y;
+  // FINAL DYNAMIC HEIGHT: Sum of all elements + margins
+  const totalHeight = (suggBoxY + suggBoxH + 80) - y;
 
+  // --- 4. RENDER BACKGROUND ---
   ctx.save();
-  
-  // 1. BACKGROUND GRADIENT
-  const gradient = ctx.createLinearGradient(0, y, 0, y + totalHeight);
-  gradient.addColorStop(0, '#CFE1E8'); // Light Purple
-  gradient.addColorStop(1, '#E7DAE5'); // Light Blue
-  ctx.fillStyle = gradient;
+  const bgGrad = ctx.createLinearGradient(0, y, 0, y + totalHeight);
+  bgGrad.addColorStop(0, '#E0D7FF'); 
+  bgGrad.addColorStop(1, '#FFFFFF'); 
+  ctx.fillStyle = bgGrad;
   ctx.fillRect(0, y, 1080, totalHeight);
 
-// 2. HEADER: "RIZZ APP" (Updated for exact match)
+  // --- 5. RENDER HEADER ---
   const headerY = y + 100;
   const centerX = 1080 / 2;
-
-  // --- Draw Shadow for the Title ---
   ctx.save();
   ctx.textAlign = 'center';
-  ctx.font = 'italic 900 100px Arial'; // Slightly larger to match visual weight
+  ctx.font = 'italic 900 110px Arial';
   ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
   ctx.shadowBlur = 15;
   ctx.shadowOffsetY = 8;
-  
-  // --- Create Text Gradient (Pink to Purple) ---
-  const textGradient = ctx.createLinearGradient(centerX - 200, 0, centerX + 200, 0);
-  textGradient.addColorStop(0, '#F5C6D6'); // Light Pink
-  textGradient.addColorStop(1, '#B9B6F5'); // Light Purple
-  
-  // --- Draw Stroke (The thick black border) ---
+  const textGrad = ctx.createLinearGradient(centerX - 200, 0, centerX + 200, 0);
+  textGrad.addColorStop(0, '#F5C6D6'); 
+  textGrad.addColorStop(1, '#B9B6F5');
   ctx.lineJoin = 'round';
-  ctx.miterLimit = 2;
   ctx.strokeStyle = '#000000';
-  ctx.lineWidth = 20; // Thick outer border
+  ctx.lineWidth = 20;
   ctx.strokeText('RIZZ APP', centerX, headerY);
-  
-  // --- Draw Fill ---
-  ctx.fillStyle = textGradient;
+  ctx.fillStyle = textGrad;
   ctx.fillText('RIZZ APP', centerX, headerY);
   ctx.restore();
 
-  // --- Draw the Icons (Back Arrow and Plus) ---
-// Function to draw the rounded bubbly icons
-const drawBubblyIcon = (type, iconX, iconY) => {
-  ctx.save();
-  ctx.translate(iconX, iconY);
-  
-  // 1. Setup Shadow
-  ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-  ctx.shadowBlur = 8;
-  ctx.shadowOffsetY = 4;
-
-  // 2. Define the Path based on type
-  ctx.beginPath();
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  
-  const size = 35; // Controls the overall scale/height
-  const thickness = 14; // Controls how "thick/rounded" the lines are
-
-  if (type === 'arrow') {
-    // Drawing a custom rounded Chevron
-    ctx.moveTo(size / 2, -size);
-    ctx.lineTo(-size / 2, 0);
-    ctx.lineTo(size / 2, size);
-  } else if (type === 'plus') {
-    // Drawing a custom rounded Plus
-    ctx.moveTo(0, -size);
-    ctx.lineTo(0, size);
-    ctx.moveTo(-size, 0);
-    ctx.lineTo(size, 0);
-  }
-
-  // 3. Draw the thick black border
-  ctx.strokeStyle = '#000000';
-  ctx.lineWidth = thickness + 12; // Extra width for the outer stroke
-  ctx.stroke();
-
-  // 4. Create the Gradient Fill
-  const iconGrad = ctx.createLinearGradient(-size, -size, size, size);
-  iconGrad.addColorStop(0, '#E0D7FF'); // Light Purple
-  iconGrad.addColorStop(1, '#F5C6D6'); // Light Pink
-  
-  ctx.strokeStyle = iconGrad;
-  ctx.lineWidth = thickness;
-  ctx.stroke();
-
-  ctx.restore();
-};
-
-// --- Execute Drawing ---
-// Adjust Y position to align vertically with the "RIZZ APP" text
-const iconCenterY = headerY - 30; 
-drawBubblyIcon('arrow', x + 60, iconCenterY);
-drawBubblyIcon('plus', x + w - 60, iconCenterY);
-
-  // 3. DARK CHAT CONTAINER
-  ctx.fillStyle = '#1A1A1A';
-  ctx.beginPath();
-  ctx.roundRect(chatAreaX, chatAreaY, chatAreaW, chatAreaH, 60);
-  ctx.fill();
-
-  // 4. DRAW BUBBLES
-  const drawBubble = (text, bY, isRight, bH) => {
-    ctx.font = '600 36px Arial';
-    const bW = ctx.measureText(text).width + 60;
-    const bX = isRight ? (chatAreaX + chatAreaW - bW - 40) : (chatAreaX + 40);
-    
-    ctx.fillStyle = isRight ? '#007AFF' : '#333333';
-    ctx.beginPath();
-    ctx.roundRect(bX, bY, bW, bH, 35);
-    ctx.fill();
-
-    ctx.fillStyle = '#FFFFFF';
-    ctx.textAlign = 'left';
-    ctx.fillText(text, bX + 30, bY + (bH/2) + 12);
-  };
-
-  drawBubble(plugData?.messages?.[0]?.text, chatAreaY + chatPaddingTop, false, h1);
-  drawBubble(plugData?.messages?.[1]?.text, chatAreaY + chatPaddingTop + h1 + bubbleGap, true, h2);
-  drawBubble(plugData?.messages?.[2]?.text, chatAreaY + chatPaddingTop + h1 + bubbleGap + h2 + bubbleGap, false, h3);
-
-  // 5. AI GENERATED LABEL
-//   ctx.fillStyle = '#000000';
-//   ctx.font = '800 40px Arial';
-//   ctx.textAlign = 'center';
-//   ctx.fillText('👇 AI generated RIZZ 👇', 1080/2, suggBoxY - 50);
-  
-// Helper to draw native color emojis
-  const drawRealEmoji = (emoji, x, y, isFlipped) => {
+  const drawBubblyIcon = (type, iconX, iconY) => {
     ctx.save();
-    ctx.translate(x, y);
-    if (isFlipped) ctx.scale(-1, 1); // Mirror the emoji for the right side
-    
-    // Use a font stack that prioritizes color emoji rendering
-    ctx.font = '50px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Arial"';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    
-    // Clear any shadow/stroke settings that might interfere with emoji colors
-    ctx.shadowColor = 'transparent';
-    ctx.strokeStyle = 'transparent';
-    
-    ctx.fillText(emoji, 0, 0); 
+    ctx.translate(iconX, iconY);
+    ctx.beginPath();
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    const size = 32;
+    if (type === 'arrow') {
+      ctx.moveTo(size/2, -size); ctx.lineTo(-size/2, 0); ctx.lineTo(size/2, size);
+    } else {
+      ctx.moveTo(0, -size); ctx.lineTo(0, size); ctx.moveTo(-size, 0); ctx.lineTo(size, 0);
+    }
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 24; ctx.stroke();
+    const iconGrad = ctx.createLinearGradient(-size, -size, size, size);
+    iconGrad.addColorStop(0, '#E0D7FF'); iconGrad.addColorStop(1, '#F5C6D6');
+    ctx.strokeStyle = iconGrad;
+    ctx.lineWidth = 12; ctx.stroke();
     ctx.restore();
   };
+  drawBubblyIcon('arrow', x + 60, headerY - 30);
+  drawBubblyIcon('plus', x + w - 60, headerY - 30);
 
-  // 1. Setup Label Text
-  const labelText = "AI generated RIZZ";
-  const labelY = suggBoxY - 55; // Positioned above the white suggestion box
-  
-  ctx.save();
-  ctx.font = 'bold 45px Arial';
-  ctx.fillStyle = '#000000';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  
-  // 2. Measure for perfect icon spacing
-  const textWidth = ctx.measureText(labelText).width;
-  const centerxx = 1080 / 2;
-  const iconSpacing = (textWidth / 2) + 65; // Distance from center to emoji
-
-  // 3. Draw the Text
-  ctx.fillText(labelText, centerxx, labelY);
-  
-  // 4. Draw the Real Colorful Emojis
-  // Left Hand
-  drawRealEmoji('👇', centerxx - iconSpacing, labelY, false);
-  // Right Hand
-  drawRealEmoji('👇', centerxx + iconSpacing, labelY, true);
-  
-  ctx.restore();
-
-  // 6. WHITE SUGGESTION BOX
-  ctx.fillStyle = '#FFFFFF';
+  // --- 6. DYNAMIC CHAT AREA ---
+  ctx.fillStyle = '#1A1A1A';
   ctx.beginPath();
-  ctx.roundRect(chatAreaX, suggBoxY, chatAreaW, suggBoxH, 50);
+  ctx.roundRect(chatAreaX, chatAreaY, chatAreaW, chatAreaH, 50);
   ctx.fill();
 
-  // Suggestion Text
+  const drawBubble = (text, bY, isRight, bH) => {
+    if (!text || bH <= 0) return;
+    ctx.font = '600 40px Arial';
+    // Helper within drawBubble to handle line splits for actual drawing
+    const wordsArr = text.split(' ');
+    let linesArr = [];
+    let curLine = '';
+    for (let word of wordsArr) {
+      if (ctx.measureText(curLine + word).width > 550) {
+        linesArr.push(curLine.trim());
+        curLine = word + ' ';
+      } else {
+        curLine += word + ' ';
+      }
+    }
+    linesArr.push(curLine.trim());
+
+    const bW = Math.min(ctx.measureText(text).width + 70, 620);
+    const bX = isRight ? (chatAreaX + chatAreaW - bW - 40) : (chatAreaX + 40);
+    ctx.fillStyle = isRight ? '#007AFF' : '#3A3A3C';
+    ctx.beginPath();
+    ctx.roundRect(bX, bY, bW, bH, 30);
+    ctx.fill();
+    ctx.fillStyle = '#FFFFFF';
+    ctx.textAlign = 'left';
+    linesArr.forEach((l, i) => {
+        ctx.fillText(l, bX + 35, bY + 45 + (i * 48));
+    });
+  };
+
+  let currentY = chatAreaY + chatPaddingTop;
+  if(h1) { drawBubble(plugData?.messages?.[0]?.text, currentY, false, h1); currentY += h1 + bubbleGap; }
+  if(h2) { drawBubble(plugData?.messages?.[1]?.text, currentY, true, h2); currentY += h2 + bubbleGap; }
+  if(h3) { drawBubble(plugData?.messages?.[2]?.text, currentY, false, h3); }
+
+  // --- 7. AI LABEL & EMOJIS ---
+  const labelY = suggBoxY - 55;
+  ctx.save();
+  ctx.font = '900 46px Arial';
   ctx.fillStyle = '#000000';
-  ctx.textAlign = 'left';
+  ctx.textAlign = 'center';
+  const labelT = "AI generated RIZZ";
+  ctx.fillText(labelT, centerX, labelY);
+  const iconSpacing = (ctx.measureText(labelT).width / 2) + 80;
+  await drawRealEmoji(centerX - iconSpacing, labelY, false);
+  await drawRealEmoji(centerX + iconSpacing, labelY, true);
+  ctx.restore();
+
+  // --- 8. DYNAMIC WHITE SUGGESTION BOX ---
+  ctx.save();
+  ctx.fillStyle = '#FFFFFF';
+  ctx.roundRect(chatAreaX, suggBoxY, chatAreaW, suggBoxH, 45);
+  ctx.fill();
+
+  ctx.fillStyle = '#000000';
+  ctx.font = '600 44px Arial';
+  ctx.textBaseline = 'middle';
+  const contentH = suggLines.length * lineSpacing;
+  const startTextY = suggBoxY + (suggBoxH/2) - (contentH/2) + (lineSpacing/2);
+  
   suggLines.forEach((line, i) => {
-    ctx.fillText(line, chatAreaX + 50, suggBoxY + suggPadding + 40 + (i * suggLineHeight));
+    ctx.fillText(line, chatAreaX + leftPadding, startTextY + (i * lineSpacing));
   });
 
-  // Simple Copy Icon placeholder
+  // Copy Icon centered vertically in the dynamic box
   ctx.strokeStyle = '#000000';
-  ctx.lineWidth = 4;
-  ctx.strokeRect(chatAreaX + chatAreaW - 90, suggBoxY + (suggBoxH/2) - 20, 30, 35);
+  ctx.lineWidth = 5;
+  const cX = chatAreaX + chatAreaW - 90;
+  const cY = suggBoxY + (suggBoxH / 2);
+  ctx.strokeRect(cX, cY - 20, 30, 40);
+  ctx.restore();
 
   ctx.restore();
   return totalHeight;
 }
-
 // ========== VIDEO ENGINE ==========
 async function generateVideo(data, message) {
     const userId = message.author.id;
@@ -488,7 +462,7 @@ async function generateVideo(data, message) {
 
         let fIdx = 0;
         const FPS = 30; 
-        const messageDuration = data.duration || 1.3; 
+        const messageDuration = data.duration ; 
         const holdFrames = Math.floor(messageDuration * FPS);
 
         const saveFrame = (canvas) => {
@@ -670,8 +644,9 @@ try {
     await new Promise(r => setTimeout(r, 1000));
 
     await message.author.send({
-        content: `📦 **Frames Archive:** \`${path.basename(zipPath)}\``,
-        files: [{ attachment: fs.createReadStream(zipPath), name: path.basename(zipPath) }]
+        // content: `📦 **Frames Archive:** \`${path.basename(zipPath)}\``,
+        content:`zip file is pending`
+        // files: [{ attachment: fs.createReadStream(zipPath), name: path.basename(zipPath) }]
     });
     console.log("✅ ZIP DM sent");
 } catch (zipErr) {

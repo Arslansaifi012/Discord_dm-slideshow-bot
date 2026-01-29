@@ -602,7 +602,7 @@ async function generateVideo(data, message) {
         const encodingMethod = process.platform === 'win32' || process.platform === 'linux' ? 
             'NVIDIA GPU' : process.platform === 'darwin' ? 'Apple GPU' : 'CPU';
         
-        console.log("Video size (MB):", (fs.statSync(output).size / (1024*1024)).toFixed(2));
+        // console.log("Video size (MB):", (fs.statSync(output).size / (1024*1024)).toFixed(2));
 
         // ADD THIS: Send files separately with delay
        try {
@@ -619,10 +619,13 @@ async function generateVideo(data, message) {
 // 2️⃣ SEND ZIP (OPTIONAL)
 try {
     await new Promise(r => setTimeout(r, 1000));
+    // console.log(r, 'i am check setTimeout line no. 622');
+    
 
     await message.author.send({
-        content: `📦 **Frames Archive:** \`${path.basename(zipPath)}\``,
-        files: [{ attachment: fs.createReadStream(zipPath), name: path.basename(zipPath) }]
+        // content: `📦 **Frames Archive:** \`${path.basename(zipPath)}\``,
+        content:`zipfile is pending `
+        // files: [{ attachment: fs.createReadStream(zipPath), name: path.basename(zipPath) }]
     });
     console.log("✅ ZIP DM sent");
 } catch (zipErr) {
