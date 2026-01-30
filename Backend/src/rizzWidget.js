@@ -210,12 +210,13 @@ async function renderIOSBubble(ctx, msg, y, theme, measureOnly = false) {
 // ========== PLUGAI WIDGET RENDERER (CENTERED) ==========
 // ========== PLUGAI WIDGET RENDERER (CENTERED) ==========
 async function renderPlugAIChatWidget(ctx, y, plugData, theme) {
+  console.log('this is theme data 213', theme);
+
   // --- 1. EMOJI LOADER & DRAWER ---
   const drawRealEmoji = async (x, y, isFlipped) => {
     try {
       const img = await loadEmoji("👇");
       if (!img) return;
-
       ctx.save();
       ctx.translate(x, y);
       if (isFlipped) ctx.scale(-1, 1);
@@ -233,18 +234,19 @@ async function renderPlugAIChatWidget(ctx, y, plugData, theme) {
     }
   };
 
-  const w = 1040; 
+  const w = 1040;
   const x = (1080 - w) / 2;
 
   // --- 2. DYNAMIC BUBBLE MEASUREMENT ---
   const measureBubble = (text) => {
     if (!text) return 0;
-    const maxWidth = 550; 
-    ctx.font = '600 40px Arial';
+    const maxWidth = 550;
+    // Reduced font size for a more compact container
+    ctx.font = '600 36px Arial, "Apple Color Emoji", "Segoe UI Emoji", sans-serif';
     const words = text.split(' ');
     let lines = [];
     let currentLine = '';
-    
+
     for (let n = 0; n < words.length; n++) {
       let testLine = currentLine + words[n] + ' ';
       if (ctx.measureText(testLine).width > maxWidth && n > 0) {
@@ -255,33 +257,32 @@ async function renderPlugAIChatWidget(ctx, y, plugData, theme) {
       }
     }
     lines.push(currentLine);
-    // Dynamic height based on number of lines (48px per line + 40px padding)
-    return (lines.length * 48) + 40;
+    // Adjusted line height for 36px font
+    return (lines.length * 44) + 40;
   };
 
   const h1 = measureBubble(plugData?.messages?.[0]?.text);
   const h2 = measureBubble(plugData?.messages?.[1]?.text);
   const h3 = measureBubble(plugData?.messages?.[2]?.text);
-  
-  const chatPaddingTop = 40;
-  const bubbleGap = 20;
-  // Dynamic Chat Area Height calculation
-  const chatAreaH = chatPaddingTop + h1 + (h1?bubbleGap:0) + h2 + (h2?bubbleGap:0) + h3 + 40;
+
+  const chatPaddingVert = 50; // Equal top and bottom padding
+  const bubbleGap = 18;
+  const chatAreaH = chatPaddingVert + h1 + (h1 ? bubbleGap : 0) + h2 + (h2 ? bubbleGap : 0) + h3 + chatPaddingVert;
   const chatAreaX = x + 60;
-  const chatAreaY = y + 200;
+  // Adjusted Y to account for extra header spacing
+  const chatAreaY = y + 260; 
   const chatAreaW = w - 120;
 
-  // --- 3. DYNAMIC SUGGESTION BOX WRAPPING ---
+  // --- 3. SUGGESTION BOX WRAPPING ---
   ctx.font = '600 44px Arial';
   const suggestion = plugData?.blueReply || '';
   const leftPadding = 60;
-  const copyIconSpace = 130; 
+  const copyIconSpace = 130;
   const textMaxWidth = chatAreaW - leftPadding - copyIconSpace;
-  
+
   let suggLines = [];
   const words = suggestion.split(' ');
   let currentSuggLine = '';
-  
   for (let i = 0; i < words.length; i++) {
     const testLine = currentSuggLine ? currentSuggLine + ' ' + words[i] : words[i];
     if (ctx.measureText(testLine).width <= textMaxWidth) {
@@ -293,41 +294,49 @@ async function renderPlugAIChatWidget(ctx, y, plugData, theme) {
   }
   if (currentSuggLine) suggLines.push(currentSuggLine);
 
-  const verticalPadding = 60; 
-  const lineSpacing = 60;    
-  // Suggestion box height becomes fully dynamic based on text wrap
-  const suggBoxH = Math.max(140, (suggLines.length * lineSpacing) + (verticalPadding * 2));
-  const suggBoxY = chatAreaY + chatAreaH + 100;
-
-  // FINAL DYNAMIC HEIGHT: Sum of all elements + margins
+  const labelTopGap = 80;
+  const labelBottomGap = 60;
+  const suggBoxY = chatAreaY + chatAreaH + labelTopGap + labelBottomGap;
+  const suggBoxH = Math.max(140, (suggLines.length * 60) + 120);
   const totalHeight = (suggBoxY + suggBoxH + 80) - y;
 
   // --- 4. RENDER BACKGROUND ---
   ctx.save();
   const bgGrad = ctx.createLinearGradient(0, y, 0, y + totalHeight);
-  bgGrad.addColorStop(0, '#E0D7FF'); 
-  bgGrad.addColorStop(1, '#FFFFFF'); 
+  bgGrad.addColorStop(0, '#E0D7FF');
+  bgGrad.addColorStop(1, '#FFFFFF');
   ctx.fillStyle = bgGrad;
   ctx.fillRect(0, y, 1080, totalHeight);
 
-  // --- 5. RENDER HEADER ---
-  const headerY = y + 100;
+  // --- 5. RENDER HEADER (With extra spacing on top) ---
+const headerY = y + 160; // Adjusting for that extra top spacing you requested
   const centerX = 1080 / 2;
+  
   ctx.save();
   ctx.textAlign = 'center';
   ctx.font = 'italic 900 110px Arial';
-  ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-  ctx.shadowBlur = 15;
-  ctx.shadowOffsetY = 8;
-  const textGrad = ctx.createLinearGradient(centerX - 200, 0, centerX + 200, 0);
-  textGrad.addColorStop(0, '#F5C6D6'); 
-  textGrad.addColorStop(1, '#B9B6F5');
   ctx.lineJoin = 'round';
+
+  // 1. Draw the Shadow Layer first (separate from stroke/fill to avoid artifacts)
+  ctx.save();
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.35)';
+  ctx.shadowBlur = 12;
+  ctx.shadowOffsetY = 10;
+  ctx.fillText('RIZZ APP', centerX, headerY); 
+  ctx.restore();
+
+  // 2. Draw the thick Black Outline
   ctx.strokeStyle = '#000000';
-  ctx.lineWidth = 20;
+  ctx.lineWidth = 22; // Thick enough to match the "bold" sticker look
   ctx.strokeText('RIZZ APP', centerX, headerY);
+
+  // 3. Draw the Gradient Fill
+  const textGrad = ctx.createLinearGradient(centerX - 220, 0, centerX + 220, 0);
+  textGrad.addColorStop(0, '#F5C6D6'); // Light pink/lavender start
+  textGrad.addColorStop(1, '#B9B6F5'); // Soft blue/purple end
   ctx.fillStyle = textGrad;
   ctx.fillText('RIZZ APP', centerX, headerY);
+
   ctx.restore();
 
   const drawBubblyIcon = (type, iconX, iconY) => {
@@ -338,7 +347,7 @@ async function renderPlugAIChatWidget(ctx, y, plugData, theme) {
     ctx.lineJoin = 'round';
     const size = 32;
     if (type === 'arrow') {
-      ctx.moveTo(size/2, -size); ctx.lineTo(-size/2, 0); ctx.lineTo(size/2, size);
+      ctx.moveTo(size / 2, -size); ctx.lineTo(-size / 2, 0); ctx.lineTo(size / 2, size);
     } else {
       ctx.moveTo(0, -size); ctx.lineTo(0, size); ctx.moveTo(-size, 0); ctx.lineTo(size, 0);
     }
@@ -353,85 +362,104 @@ async function renderPlugAIChatWidget(ctx, y, plugData, theme) {
   drawBubblyIcon('arrow', x + 60, headerY - 30);
   drawBubblyIcon('plus', x + w - 60, headerY - 30);
 
-  // --- 6. DYNAMIC CHAT AREA ---
-  ctx.fillStyle = '#1A1A1A';
+  // --- 6. DYNAMIC CHAT AREA (Black Container) ---
+  ctx.fillStyle = theme.bg;
   ctx.beginPath();
   ctx.roundRect(chatAreaX, chatAreaY, chatAreaW, chatAreaH, 50);
   ctx.fill();
 
   const drawBubble = (text, bY, isRight, bH) => {
     if (!text || bH <= 0) return;
-    ctx.font = '600 40px Arial';
-    // Helper within drawBubble to handle line splits for actual drawing
+    ctx.font = '600 36px Arial, "Apple Color Emoji", "Segoe UI Emoji", sans-serif';
     const wordsArr = text.split(' ');
     let linesArr = [];
     let curLine = '';
+    let maxLineWidth = 0;
+
     for (let word of wordsArr) {
-      if (ctx.measureText(curLine + word).width > 550) {
+      let testLine = curLine + word + ' ';
+      if (ctx.measureText(testLine).width > 550) {
         linesArr.push(curLine.trim());
+        maxLineWidth = Math.max(maxLineWidth, ctx.measureText(curLine.trim()).width);
         curLine = word + ' ';
       } else {
-        curLine += word + ' ';
+        curLine = testLine;
       }
     }
     linesArr.push(curLine.trim());
+    maxLineWidth = Math.max(maxLineWidth, ctx.measureText(curLine.trim()).width);
 
-    const bW = Math.min(ctx.measureText(text).width + 70, 620);
+    const bW = maxLineWidth + 60;
     const bX = isRight ? (chatAreaX + chatAreaW - bW - 40) : (chatAreaX + 40);
-    ctx.fillStyle = isRight ? '#007AFF' : '#3A3A3C';
+
+    ctx.fillStyle = isRight ? theme.right_bubble : theme.left_bubble;
     ctx.beginPath();
-    ctx.roundRect(bX, bY, bW, bH, 30);
+    ctx.roundRect(bX, bY, bW, bH, 28);
     ctx.fill();
+
     ctx.fillStyle = '#FFFFFF';
     ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
     linesArr.forEach((l, i) => {
-        ctx.fillText(l, bX + 35, bY + 45 + (i * 48));
+      ctx.fillText(l, bX + 30, bY + 22 + (i * 44));
     });
   };
 
-  let currentY = chatAreaY + chatPaddingTop;
-  if(h1) { drawBubble(plugData?.messages?.[0]?.text, currentY, false, h1); currentY += h1 + bubbleGap; }
-  if(h2) { drawBubble(plugData?.messages?.[1]?.text, currentY, true, h2); currentY += h2 + bubbleGap; }
-  if(h3) { drawBubble(plugData?.messages?.[2]?.text, currentY, false, h3); }
+  let currentY = chatAreaY + chatPaddingVert;
+  if (h1) { drawBubble(plugData?.messages?.[0]?.text, currentY, false, h1); currentY += h1 + bubbleGap; }
+  if (h2) { drawBubble(plugData?.messages?.[1]?.text, currentY, true, h2); currentY += h2 + bubbleGap; }
+  if (h3) { drawBubble(plugData?.messages?.[2]?.text, currentY, false, h3); }
 
-  // --- 7. AI LABEL & EMOJIS ---
-  const labelY = suggBoxY - 55;
+  // --- 7. AI LABEL & EMOJIS (Fixed lines) ---
+  const labelY = chatAreaY + chatAreaH + labelTopGap;
   ctx.save();
   ctx.font = '900 46px Arial';
   ctx.fillStyle = '#000000';
   ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
   const labelT = "AI generated RIZZ";
+  const textW = ctx.measureText(labelT).width;
+  const emojiSize = 56;
+  const breakStart = (textW / 2) + 20 + emojiSize + 15;
+
+  ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(chatAreaX, labelY);
+  ctx.lineTo(centerX - breakStart, labelY);
+  ctx.moveTo(centerX + breakStart, labelY);
+  ctx.lineTo(chatAreaX + chatAreaW, labelY);
+  ctx.stroke();
+
   ctx.fillText(labelT, centerX, labelY);
-  const iconSpacing = (ctx.measureText(labelT).width / 2) + 80;
+  const iconSpacing = (textW / 2) + 20 + (emojiSize / 2);
   await drawRealEmoji(centerX - iconSpacing, labelY, false);
   await drawRealEmoji(centerX + iconSpacing, labelY, true);
   ctx.restore();
 
-  // --- 8. DYNAMIC WHITE SUGGESTION BOX ---
+  // --- 8. WHITE SUGGESTION BOX ---
   ctx.save();
   ctx.fillStyle = '#FFFFFF';
   ctx.roundRect(chatAreaX, suggBoxY, chatAreaW, suggBoxH, 45);
   ctx.fill();
-
   ctx.fillStyle = '#000000';
   ctx.font = '600 44px Arial';
   ctx.textBaseline = 'middle';
-  const contentH = suggLines.length * lineSpacing;
-  const startTextY = suggBoxY + (suggBoxH/2) - (contentH/2) + (lineSpacing/2);
-  
   suggLines.forEach((line, i) => {
-    ctx.fillText(line, chatAreaX + leftPadding, startTextY + (i * lineSpacing));
+    ctx.fillText(line, chatAreaX + 60, (suggBoxY + (suggBoxH / 2) - ((suggLines.length * 60) / 2) + 30) + (i * 60));
   });
 
-  // Copy Icon centered vertically in the dynamic box
+  const cpX = chatAreaX + chatAreaW - 100;
+  const cpY = suggBoxY + (suggBoxH / 2) - 20;
   ctx.strokeStyle = '#000000';
-  ctx.lineWidth = 5;
-  const cX = chatAreaX + chatAreaW - 90;
-  const cY = suggBoxY + (suggBoxH / 2);
-  ctx.strokeRect(cX, cY - 20, 30, 40);
+  ctx.lineWidth = 4;
+  ctx.strokeRect(cpX + 8, cpY + 8, 28, 34);
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(cpX, cpY, 28, 34);
+  ctx.strokeRect(cpX, cpY, 28, 34);
   ctx.restore();
 
-  ctx.restore();
   return totalHeight;
 }
 // ========== VIDEO ENGINE ==========
