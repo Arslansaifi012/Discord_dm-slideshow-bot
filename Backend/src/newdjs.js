@@ -33,15 +33,25 @@ const THEMES = {
         bg: "#000000", 
         secondary: "#8E8E93" 
     },
-    ios_light: {
-        name: "iOS Light",
-        right_bubble: '#007AFF',
-        right_text: '#FFFFFF',
-        left_bubble: '#E9E9EB',
-        left_text: '#000000',
-        bg: '#FFFFFF',
-        secondary: '#8E8E93'
-    }
+   ios_light: {
+    name: "iOS Dark",
+
+    // RIGHT bubble (your message)
+    right_bubble: '#3A3A3C',     // iOS dark grey
+    right_text: '#FFFFFF',
+
+    // LEFT bubble (other person)
+    left_bubble: 'transparent', // important
+    left_text: '#FFFFFF',
+
+    // borders
+    left_border: '#3A3A3C',
+    right_border: 'transparent',
+
+    bg: '#000000',
+    secondary: '#8E8E93'
+}
+
 };
 
 const DIRS = ['scripts', 'output', 'temp'];

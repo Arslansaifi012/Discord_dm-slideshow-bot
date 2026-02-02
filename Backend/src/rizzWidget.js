@@ -33,15 +33,20 @@ const THEMES = {
         bg: "#000000", 
         secondary: "#8E8E93" 
     },
-    ios_light: {
-        name: "iOS Light",
-        right_bubble: '#007AFF',
-        right_text: '#FFFFFF',
-        left_bubble: '#E9E9EB',
-        left_text: '#000000',
-        bg: '#FFFFFF',
-        secondary: '#8E8E93'
-    }
+  ios_light: {
+ name: "iOS light",
+    // Right Bubble (Solid Grey)
+    right_bubble: '#3A3A3C',   
+    right_text: '#FFFFFF',
+    // Left Bubble (Outlined)
+    left_bubble: 'transparent', 
+    left_text: '#FFFFFF',
+    left_border: '#FFFFFF',
+    bg: '#000000',
+    border_width: 1,
+    secondary: '#8E8E93' 
+}
+
 };
 
 const DIRS = ['scripts', 'output', 'temp'];
@@ -176,12 +181,36 @@ async function renderIOSBubble(ctx, msg, y, theme, measureOnly = false) {
     if (measureOnly) return bH + 15;
 
     const x = msg.side === "right" ? 1080 - bW - 40 : 40;
-    if (!bigEmoji) {
-        ctx.fillStyle = msg.side === "right" ? theme.right_bubble : theme.left_bubble;
-        ctx.beginPath();
-        ctx.roundRect(x, y, bW, bH, 50);
-        ctx.fill();
+   
+if (!bigEmoji) {
+    ctx.beginPath();
+    // Path definition - Use 20 for a modern look or 45 for the "pill" look in your pink image
+    ctx.roundRect(x, y, bW, bH, 45); 
+
+    if (msg.side === "right") {
+        if (theme.right_bubble === 'transparent') {
+            // Outlined Right Bubble
+            ctx.strokeStyle = theme.right_border || theme.right_text;
+            ctx.lineWidth = theme.border_width || 1;
+            ctx.stroke();
+        } else {
+            // Solid Right Bubble
+            ctx.fillStyle = theme.right_bubble;
+            ctx.fill();
+        }
+    } else {
+        if (theme.left_bubble === 'transparent') {
+            // Outlined Left Bubble
+            ctx.strokeStyle = theme.left_border || theme.left_text;
+            ctx.lineWidth = theme.border_width || 1;
+            ctx.stroke();
+        } else {
+            // Solid Left Bubble
+            ctx.fillStyle = theme.left_bubble;
+            ctx.fill();
+        }
     }
+}
 
     ctx.fillStyle = bigEmoji ? (theme.bg === '#FFFFFF' ? '#000' : '#fff') : (msg.side === "right" ? theme.right_text : theme.left_text);
     ctx.textBaseline = "middle";
@@ -210,7 +239,6 @@ async function renderIOSBubble(ctx, msg, y, theme, measureOnly = false) {
 // ========== PLUGAI WIDGET RENDERER (CENTERED) ==========
 // ========== PLUGAI WIDGET RENDERER (CENTERED) ==========
 async function renderPlugAIChatWidget(ctx, y, plugData, theme) {
-  console.log('this is theme data 213', theme);
 
   // --- 1. EMOJI LOADER & DRAWER ---
   const drawRealEmoji = async (x, y, isFlipped) => {
@@ -368,23 +396,26 @@ const headerY = y + 160; // Adjusting for that extra top spacing you requested
   ctx.roundRect(chatAreaX, chatAreaY, chatAreaW, chatAreaH, 50);
   ctx.fill();
 
-  const drawBubble = (text, bY, isRight, bH) => {
+ const drawBubble = (text, bY, isRight, bH) => {
     if (!text || bH <= 0) return;
+    
+    // Set font for measurement
     ctx.font = '600 36px Arial, "Apple Color Emoji", "Segoe UI Emoji", sans-serif';
     const wordsArr = text.split(' ');
     let linesArr = [];
     let curLine = '';
     let maxLineWidth = 0;
 
+    // Wrap text logic
     for (let word of wordsArr) {
-      let testLine = curLine + word + ' ';
-      if (ctx.measureText(testLine).width > 550) {
-        linesArr.push(curLine.trim());
-        maxLineWidth = Math.max(maxLineWidth, ctx.measureText(curLine.trim()).width);
-        curLine = word + ' ';
-      } else {
-        curLine = testLine;
-      }
+        let testLine = curLine + word + ' ';
+        if (ctx.measureText(testLine).width > 550) {
+            linesArr.push(curLine.trim());
+            maxLineWidth = Math.max(maxLineWidth, ctx.measureText(curLine.trim()).width);
+            curLine = word + ' ';
+        } else {
+            curLine = testLine;
+        }
     }
     linesArr.push(curLine.trim());
     maxLineWidth = Math.max(maxLineWidth, ctx.measureText(curLine.trim()).width);
@@ -392,23 +423,43 @@ const headerY = y + 160; // Adjusting for that extra top spacing you requested
     const bW = maxLineWidth + 60;
     const bX = isRight ? (chatAreaX + chatAreaW - bW - 40) : (chatAreaX + 40);
 
-    ctx.fillStyle = isRight ? theme.right_bubble : theme.left_bubble;
+    // --- NEW THEME LOGIC ---
+    const bubbleColor = isRight ? theme.right_bubble : theme.left_bubble;
+    const textColor = isRight ? theme.right_text : theme.left_text;
+    const borderColor = isRight ? (theme.right_border || theme.right_text) : (theme.left_border || theme.left_text);
+
     ctx.beginPath();
     ctx.roundRect(bX, bY, bW, bH, 28);
-    ctx.fill();
 
-    ctx.fillStyle = '#FFFFFF';
+    if (bubbleColor === 'transparent') {
+        // Render as Outline
+        ctx.strokeStyle = borderColor;
+        ctx.lineWidth = theme.border_width || 2;
+        ctx.stroke();
+    } else {
+        // Render as Solid
+        ctx.fillStyle = bubbleColor;
+        ctx.fill();
+    }
+
+    // Render Text using theme text color
+    ctx.fillStyle = textColor;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
     linesArr.forEach((l, i) => {
-      ctx.fillText(l, bX + 30, bY + 22 + (i * 44));
+        ctx.fillText(l, bX + 30, bY + 22 + (i * 44));
     });
-  };
+};
 
   let currentY = chatAreaY + chatPaddingVert;
-  if (h1) { drawBubble(plugData?.messages?.[0]?.text, currentY, false, h1); currentY += h1 + bubbleGap; }
-  if (h2) { drawBubble(plugData?.messages?.[1]?.text, currentY, true, h2); currentY += h2 + bubbleGap; }
-  if (h3) { drawBubble(plugData?.messages?.[2]?.text, currentY, false, h3); }
+plugData?.messages?.slice(0, 3).forEach((msg, index) => {
+    const bH = [h1, h2, h3][index];
+    if (bH) {
+        const isRight = msg.side === "right";
+        drawBubble(msg.text, currentY, isRight, bH);
+        currentY += bH + bubbleGap;
+    }
+});
 
   // --- 7. AI LABEL & EMOJIS (Fixed lines) ---
   const labelY = chatAreaY + chatAreaH + labelTopGap;
