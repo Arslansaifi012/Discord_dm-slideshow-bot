@@ -429,7 +429,7 @@ const headerY = y + 160; // Adjusting for that extra top spacing you requested
     const borderColor = isRight ? (theme.right_border || theme.right_text) : (theme.left_border || theme.left_text);
 
     ctx.beginPath();
-    ctx.roundRect(bX, bY, bW, bH, 28);
+    ctx.roundRect(bX, bY, bW, bH, 45);
 
     if (bubbleColor === 'transparent') {
         // Render as Outline
@@ -610,6 +610,7 @@ async function generateVideo(data, message) {
         const timestamp = Date.now();
         const output = path.join('output', `${userId}_${timestamp}.mp4`);
         const zipPath = path.join('output', `${userId}_${timestamp}_frames.zip`);
+        const audiopath = 'C:/Users/pc/Documents/discord_bot/Backend/audio/song2.mpeg'
 
         // Create ZIP of frames
         const zip = new AdmZip();
@@ -623,6 +624,10 @@ async function generateVideo(data, message) {
             const ffmpegCmd = ffmpeg()
                 .input(path.join(userTemp, 'frame_%06d.png'))
                 .inputFPS(FPS)
+                .input(audiopath)
+                .videoCodec('libx264')
+                .audioCodec('aac')
+                .outputOptions(['-shortest'])
                 .output(output);
             
             // GPU ENCODING SETTINGS BASED ON PLATFORM
@@ -806,7 +811,7 @@ client.on(Events.MessageCreate, async (msg) => {
                 msg.reply("🌑 **Step 5:** Fade?");
                 break;
             case "FADE":
-                session.data.fade = parseFloat(msg.content) || 0;
+                session.data.fade = parseFloat(msg.content) ;
                 const script = fs.readFileSync(session.data.txtPath, 'utf8');
                 const req = [...new Set([...script.matchAll(/([^\s<>]+\.(png|jpg|jpeg|gif|webp))/gi)].map(m => m[1]))];
                 session.data.required = req;
