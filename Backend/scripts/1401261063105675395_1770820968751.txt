@@ -1,0 +1,13 @@
+R) You’re hitting the apex, but losing the race. 🏁
+L) I’m leading by three seconds. 
+Overturned.PNG <1.5s>
+R) Telemetry tracks the car. I’m tracking the driver. ✨
+L) Quick. Can you handle the pressure? 🙄
+R) I don’t handle it. I apply it to the entire circuit. 💎
+L) You’re more streamlined than the aero.
+MachSpeed.PNG <1.5s>
+R) I don’t follow the line. Checkered flag: Mine. 🏆
+L) Wait... why was that actually lethal? 😳
+R) It’s not a race. It’s a system upgrade. Exit the pits.
+L) 555-0444. See you at the podium. 😉
+P1_Status.PNG <2.0s>
