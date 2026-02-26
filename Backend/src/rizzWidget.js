@@ -13,7 +13,7 @@ import path from 'path';
 import { Buffer } from 'buffer';
 import AdmZip from 'adm-zip';
 
-// ========== THEME CONFIGURATION ==========
+// ========== THEME CONFIGURATION ==========             
 const THEMES = {
     ios_dark: {
         name: "iOS Dark",
@@ -240,7 +240,6 @@ if (!bigEmoji) {
 } ;
 
 // ========== PLUGAI WIDGET RENDERER (CENTERED) ==========
-// ========== PLUGAI WIDGET RENDERER (CENTERED) ==========
 async function renderPlugAIChatWidget(ctx, y, plugData, theme) {
   // --- 1. EMOJI LOADER & DRAWER ---
   const drawRealEmoji = async (x, y, isFlipped) => {
@@ -293,11 +292,11 @@ async function renderPlugAIChatWidget(ctx, y, plugData, theme) {
   const h2 = measureBubble(plugData?.messages?.[1]?.text);
   const h3 = measureBubble(plugData?.messages?.[2]?.text);
 
-  const chatPaddingVert = 50;
+  const chatPaddingVert = 25;
   const bubbleGap = 18;
   const chatAreaH = chatPaddingVert + h1 + (h1 ? bubbleGap : 0) + h2 + (h2 ? bubbleGap : 0) + h3 + chatPaddingVert;
   const chatAreaX = x + 60;
-  const chatAreaY = y + 280; // Adjusted for header space
+  const chatAreaY = y + 190; // Adjusted for header space
   const chatAreaW = w - 120;
 
   // --- 3. SUGGESTION BOX WRAPPING ---
@@ -318,7 +317,7 @@ async function renderPlugAIChatWidget(ctx, y, plugData, theme) {
       if (currentSuggLine) suggLines.push(currentSuggLine);
       currentSuggLine = words[i];
     }
-  }
+  } ;
   if (currentSuggLine) suggLines.push(currentSuggLine);
 
   const labelTopGap = 80;
@@ -338,97 +337,32 @@ async function renderPlugAIChatWidget(ctx, y, plugData, theme) {
   ctx.restore();
 
   // --- 5. RENDER HEADER (Perfect Centering & Slant) ---
-const headerY = y + 160;
-const canvasWidth = 1080;
+const headerY = y + 80;
+  const canvasWidth = 1080;
+  const sidePadding = 60;
+  const centerX = canvasWidth / 2;
 
-ctx.save();
-ctx.textBaseline = 'middle';
-ctx.font = '75px JoyrideWide';
-ctx.lineJoin = 'round';
+  try {
+    const base64 = fs.readFileSync("./assets/logo.png", "base64");
+    const logoUrl = `data:image/png;base64,${base64}`;
+    const logoImg = await loadImage(logoUrl);
 
-/* =========================
-   SETTINGS (CONTROL HERE)
-========================= */
+    if (logoImg) {
+      const targetHeight = 150;
+      const aspectRatio = logoImg.width / logoImg.height;
+      const targetWidth = targetHeight * aspectRatio;
 
-const letterSpacing = 10;   // R I Z Z ke beech gap
-const wordGap = 30;        // RIZZ aur APP ke beech gap
-const sidePadding = 60;    // Arrow & Plus side gap
-const shear = -0.15;
-
-/* =========================
-   LETTER WIDTH CALCULATION
-========================= */
-
-function getWordWidth(text) {
-  let width = 0;
-  for (let i = 0; i < text.length; i++) {
-    width += ctx.measureText(text[i]).width;
-  }
-  return width + letterSpacing * (text.length - 1);
-}
-
-const rizzW = getWordWidth("RIZZ");
-const appW = getWordWidth("APP");
-const totalTextW = rizzW + wordGap + appW;
-
-/* =========================
-   SAFE CENTER AREA
-========================= */
-
-const usableWidth = canvasWidth - (sidePadding * 2);
-const centerX = sidePadding + usableWidth / 2;
-
-/* =========================
-   DRAW TEXT WITH SHEAR
-========================= */
-
-ctx.save();
-ctx.transform(1, 0, shear, 1, 0, 0);
-
-const startX = centerX - (totalTextW / 2) - (shear * headerY);
-
-function drawLetter(text, xPos) {
-  // Glow
-  ctx.save();
-  ctx.shadowColor = 'rgba(0,0,0,0.6)';
-  ctx.shadowBlur = 25;
-  ctx.fillText(text, xPos, headerY);
-  ctx.restore();
-
-  // Outline
-  ctx.strokeStyle = '#000';
-  ctx.lineWidth = 18;
-  ctx.strokeText(text, xPos, headerY);
-
-  // Gradient
-  const grad = ctx.createLinearGradient(
-    xPos, 0,
-    xPos + ctx.measureText(text).width, 0
-  );
-  grad.addColorStop(0, '#F5C6D6');
-  grad.addColorStop(1, '#B9B6F5');
-  ctx.fillStyle = grad;
-  ctx.fillText(text, xPos, headerY);
-}
-
-function drawSpacedWord(word, x) {
-  for (let i = 0; i < word.length; i++) {
-    drawLetter(word[i], x);
-    x += ctx.measureText(word[i]).width + letterSpacing;
-  }
-  return x;
-}
-
-let currentX = startX;
-currentX = drawSpacedWord("RIZZ", currentX);
-currentX += wordGap;
-drawSpacedWord("APP", currentX);
-
-ctx.restore();
-
-/* =========================
-   ICONS (NO SHEAR)
-========================= */
+      ctx.save();
+      const shear = -0.15; 
+      ctx.transform(1, 0, shear, 1, 0, 0);
+      const drawX = centerX - (targetWidth / 2) - (shear * headerY);
+      
+      ctx.drawImage(logoImg, drawX, headerY - (targetHeight / 2), targetWidth, targetHeight);
+      ctx.restore();
+    }
+  } catch (err) {
+    console.error("Logo file missing or error:", err.message);
+  } ;
 
 function drawBubblyIcon(type, iconX, iconY) {
   ctx.save();
@@ -483,7 +417,7 @@ ctx.restore();
 
   const drawBubble = (text, bY, isRight, bH) => {
     if (!text || bH <= 0) return;
-    ctx.font = '600 36px Arial, "Apple Color Emoji", "Segoe UI Emoji", sans-serif';
+    ctx.font = 'normal 36px Arial, "Apple Color Emoji", "Segoe UI Emoji", sans-serif';
     const wordsArr = text.split(' ');
     let linesArr = [];
     let curLine = '';
@@ -705,7 +639,7 @@ async function generateVideo(data, message) {
         const timestamp = Date.now();
         const output = path.join('output', `${userId}_${timestamp}.mp4`);
         const zipPath = path.join('output', `${userId}_${timestamp}_frames.zip`);
-        // const audiopath = 'C:/Users/pc/Documents/discord_bot/Backend/audio/song2.mpeg'
+        const audiopath = 'C:/Users/pc/Documents/discord_bot/Backend/audio/song1.mpeg'
 
         // Create ZIP of frames
         const zip = new AdmZip();
@@ -719,7 +653,7 @@ async function generateVideo(data, message) {
             const ffmpegCmd = ffmpeg()
                 .input(path.join(userTemp, 'frame_%06d.png'))
                 .inputFPS(FPS)
-                // .input(audiopath)
+                .input(audiopath)
                 .videoCodec('libx264')
                 .audioCodec('aac')
                 .outputOptions(['-shortest'])
@@ -808,6 +742,14 @@ async function generateVideo(data, message) {
 
         // ADD THIS: Send files separately with delay
        try {
+//         const targetFolder = path.join(__dirname, '..', 'output_videos');
+//         if (!fs.existsSync(targetFolder)) {
+//     fs.mkdirSync(targetFolder, { recursive: true });};
+
+// const destination = path.join(targetFolder, path.basename(output));
+
+// fs.copyFileSync(output, destination);
+
     await message.author.send({
         content: `✅ **Video Generated!**\n\n• **Video:** \`${path.basename(output)}\`\n• **Encoding:** ${encodingMethod}-accelerated\n• **Size:** ${(fs.statSync(output).size / (1024*1024)).toFixed(2)}MB`,
         files: [{ attachment: fs.createReadStream(output), name: path.basename(output) }]
